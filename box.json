@@ -1,0 +1,11 @@
+{
+    "chmod": "0755",
+    "map": [
+        {
+            "app": "app",
+            "vendor-dir": "vendor"
+        }
+    ],
+    "main": "tacp.php",
+    "output": "build/tacp.phar"
+}
