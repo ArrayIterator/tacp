@@ -1,23 +1,27 @@
 <?php
 declare(strict_types=1);
 
-namespace TelkomselAggregatorTask;
+namespace TelkomselAggregatorTask\Libraries\Database;
 
 use JetBrains\PhpStorm\ArrayShape;
 use PDO;
-use Symfony\Component\Yaml\Yaml;
 use Throwable;
 
 /**
  * @mixin PDO
  */
-class Database
+class Postgre extends AbstractDatabase
 {
-    public readonly Runner $runner;
-
     private array $databaseConfig = [];
 
+    /**
+     * @var PDO
+     */
     private ?PDO $connection = null;
+
+    /**
+     * @var bool
+     */
     private bool $checked = false;
 
     /**
@@ -30,11 +34,9 @@ class Database
         ]
     ])] private array $tables = [];
 
-    public function __construct(Runner $runner)
-    {
-        $this->runner = $runner;
-    }
-
+    /**
+     * Check Configurations
+     */
     public function check()
     {
         if ($this->checked) {
@@ -107,9 +109,15 @@ class Database
         }
     }
 
+    /**
+     * @return PDO
+     */
     public function getConnection() : PDO
     {
         if (!$this->connection) {
+
+            $this->runner->events->dispatch('on:before:createConnection', $this);
+
             $this->check();
             $host = $this->databaseConfig['dbhost']??'localhost';
             $port = $this->databaseConfig['dbport']??null;
@@ -156,7 +164,7 @@ class Database
                 $columnName = strtolower($row['column_name']);
                 $this->tables[$lower]['columns'][$columnName] = [
                     'name' => $row['column_name'],
-                    'data_type' => $row['data_type'],
+                    'data_type' => strtoupper($row['data_type']),
                     'default' => $row['column_default'],
                     'max_length' => $row['max_length'] ? (int) $row['max_length'] : null,
                     'is_nullable' => (int) $row['is_nullable'] === 1,
@@ -164,6 +172,8 @@ class Database
             }
 
             $statement->closeCursor();
+
+            $this->runner->events->dispatch('on:after:createConnection', $this);
         }
 
         return $this->connection;
@@ -184,28 +194,14 @@ class Database
         return $this->tables[strtolower(trim($tableName))]??null;
     }
 
-    public function tableExist(string $tableName) : bool
+    /**
+     * @inheritdoc
+     */
+    public function close()
     {
-        return $this->getTableDefinitions($tableName) !== null;
-    }
-
-    public function ping()
-    {
-        $this->getConnection()->query("SELECT 1");
-    }
-
-    public function __call(string $name, array $arguments)
-    {
-        return call_user_func_array([$this->getConnection(), $name], $arguments);
-    }
-
-    public static function __callStatic(string $name, array $arguments)
-    {
-        return call_user_func_array([PDO::class, $name], $arguments);
-    }
-
-    public function __destruct()
-    {
+        $this->runner->events->dispatch('on:before:closeConnection', $this);
         $this->connection = null;
+        $this->tables = [];
+        $this->runner->events->dispatch('on:after:closeConnection', $this);
     }
 }

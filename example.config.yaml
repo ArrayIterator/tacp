@@ -27,13 +27,15 @@ database:
 # ap-northeast-1 Asia Pacific (Tokyo)
 # ap-southeast-2 Asia Pacific (Sydney)
 # ap-northeast-2 Asia Pacific (Seoul)
-# ap-southeast-3 Asia Pacifig (Indonesia)
+# ap-southeast-3 Asia Pacific (Indonesia)
 # sa-east-1 South America (Sao Paulo)
 # cn-north-1 China (Beijing)
 # ap-south-1 India (Mumbai)
 aws:
-  id: ABCDEFGHIJKLMNOPQRSTU
-  secret: ExampleRandomSecretKeyFromAws
+  key: ACCESSIS20CHARLENGTH
+  secret: ExampleRandomSecretFromAwsIs40CharLength
   region: ap-southeast-1
   bucket: exampleBucket
-  url: https://example-bucket.s3.region.amazonaws.com/
+  # url use for replace for cloudfront string
+  # url: https://example-bucket.s3-region.amazonaws.com/
+  url: https://random-string.cloudfront.net/

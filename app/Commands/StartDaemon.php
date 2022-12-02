@@ -7,13 +7,26 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use TelkomselAggregatorTask\Console;
+
+use TelkomselAggregatorTask\Libraries\Console;
+use TelkomselAggregatorTask\Runner;
 use Throwable;
 
 class StartDaemon extends Command
 {
+    /**
+     * @var string
+     */
     protected string $name = 'daemon:start';
+
+    /**
+     * @var string
+     */
     protected string $description  = 'Start & Resolve daemon service';
+
+    /**
+     * @var Console
+     */
     public readonly Console $console;
 
     /**
@@ -27,21 +40,38 @@ class StartDaemon extends Command
         $this->setAliases(['daemon', 'start-daemon', 'resolve']);
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        return $this->checkData($input, $output);
+        return $this->checkData($output);
     }
 
+    /**
+     * Check the data
+     *
+     * @param OutputInterface $output
+     * @param bool $skip
+     * @param false $inRestart
+     *
+     * @return int
+     */
     public function checkData(
-        InputInterface $input,
         OutputInterface $output,
-        $skip = true,
-        $inRestart = false
-    ) {
+        bool $skip = true,
+        bool $inRestart = false
+    ): int {
         $this->console->setAutoExit(!$skip);
         /**
          * @var SymfonyStyle $output
          */
+        if (is_string($this->console->runner->stop_file)
+            && file_exists($this->console->runner->stop_file)
+        ) {
+            $output->writeln(
+                '<fg=red>File ".stop" already exist! Application could not started! Please delete first.</>'
+            );
+            exit(0);
+        }
+
         $processes = $this->console->runner->getProcess();
         if (is_array($processes) && ($skip || $inRestart)) {
             $processes = array_filter($processes, function ($e) {
@@ -85,9 +115,9 @@ class StartDaemon extends Command
                     "$kill -9 $process"
                 );
             }
-            $this->checkTable($output);
+            $this->checkTable($output, $skip);
         } else {
-            $this->checkTable($output);
+            $this->checkTable($output, $skip);
             if ($maxProcess === $counted) {
                 $output->writeln(
                     sprintf(
@@ -145,10 +175,18 @@ class StartDaemon extends Command
         return self::SUCCESS;
     }
 
-    private function checkTable(OutputInterface $output, $skip = false)
+    /**
+     * @param OutputInterface $output
+     * @param bool $skip
+     */
+    private function checkTable(OutputInterface $output, bool $skip = false)
     {
+        if ($skip) {
+            $this->console->runner->checkServices();
+        }
+
         // ping the database
-        if (!$this->console->runner->connection->tableExist('contents')) {
+        if (!$this->console->runner->postgre->tableExist(Runner::TABLE_CHECK)) {
             $output->writeln(
                 '<fg=red>Table [contents] does not exists!</>'
             );

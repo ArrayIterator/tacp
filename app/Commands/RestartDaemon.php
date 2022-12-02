@@ -7,13 +7,23 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use TelkomselAggregatorTask\Console;
-use Throwable;
+use TelkomselAggregatorTask\Libraries\Console;
 
 class RestartDaemon extends Command
 {
+    /**
+     * @var string
+     */
     protected string $name = 'daemon:restart';
+
+    /**
+     * @var string
+     */
     protected string $description  = 'Restart the daemon';
+
+    /**
+     * @var Console
+     */
     public readonly Console $console;
 
     /**
@@ -27,8 +37,23 @@ class RestartDaemon extends Command
         $this->setAliases(['restart', 'restart-daemon']);
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     *
+     * @return int
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        if (is_string($this->console->runner->stop_file)
+            && file_exists($this->console->runner->stop_file)
+        ) {
+            $output->writeln(
+                '<fg=red>File ".stop" already exist! Application could not started! Please delete first.</>'
+            );
+            exit(0);
+        }
+
         // ping
         /**
          * @var SymfonyStyle $output
@@ -50,33 +75,12 @@ class RestartDaemon extends Command
         } else {
             $output->writeln('<fg=yellow>Daemon Stopped</>');
         }
+
         /**
          * @var StartDaemon $daemon
          */
         $daemon = $this->console->get('daemon:start');
-        $daemon->checkData($input, $output, false, true);
+        $daemon->checkData($output, false, true);
         return self::SUCCESS;
-    }
-
-    private function checkTable(OutputInterface $output)
-    {
-        // ping the database
-        if (!$this->console->runner->connection->tableExist('contents')) {
-            $output->writeln(
-                '<fg=red>Table [contents] does not exists!</>'
-            );
-            exit(255);
-        }
-        try {
-            $this->console->runner->sqlite->ping();
-        } catch (Throwable $e) {
-            $output->writeln(
-                '<fg=red>There was an error with sqlite!</>'
-            );
-            $output->writeln(
-                sprintf('<fg=gray>%s</>', $e->getMessage())
-            );
-            exit(255);
-        }
     }
 }

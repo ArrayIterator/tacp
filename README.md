@@ -83,6 +83,12 @@ php8.1 tacp.phar daemon:restart
 php8.1 tacp.phar application:start
 ```
 
+### SAFE APPLICATION STOP
+
+Add file `.stop` to `CWD` _(Current Working Directory)._
+
+This will stop application when loop process done.
+
 
 ### CODING STANDARD
 

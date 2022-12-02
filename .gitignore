@@ -87,3 +87,7 @@ node_modules/
 build/
 *.phar
 config.yaml
+
+# IGNORE MY TEST FILES
+test.php
+.stop

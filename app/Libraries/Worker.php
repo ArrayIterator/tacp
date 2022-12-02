@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace TelkomselAggregatorTask\TaskWorker;
+namespace TelkomselAggregatorTask\Libraries;
 
 use TelkomselAggregatorTask\Runner;
 
@@ -16,6 +16,7 @@ class Worker
 
     public function start()
     {
-        // @todo processing
+        // do process
+        // @todo process select
     }
 }

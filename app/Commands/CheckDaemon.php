@@ -7,13 +7,25 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use TelkomselAggregatorTask\Console;
+use TelkomselAggregatorTask\Libraries\Console;
+use TelkomselAggregatorTask\Runner;
 use Throwable;
 
 class CheckDaemon extends Command
 {
+    /**
+     * @var string
+     */
     protected string $name = 'daemon:check';
+
+    /**
+     * @var string
+     */
     protected string $description  = 'Check the daemon';
+
+    /**
+     * @var Console
+     */
     public readonly Console $console;
 
     /**
@@ -27,7 +39,13 @@ class CheckDaemon extends Command
         $this->setAliases(['check', 'check-daemon']);
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     *
+     * @return int
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         // ping
         /**
@@ -110,12 +128,17 @@ class CheckDaemon extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * @param OutputInterface $output
+     */
     private function checkTable(OutputInterface $output)
     {
-        // @todo ping
-        if (!$this->console->runner->connection->tableExist('contents')) {
+        if (!$this->console->runner->postgre->tableExist(Runner::TABLE_CHECK)) {
             $output->writeln(
-                '<fg=red>Table [contents] does not exists!</>'
+                sprintf(
+                    '<fg=red>Table [%s] does not exists!</>',
+                    Runner::TABLE_CHECK
+                )
             );
             exit(255);
         }
