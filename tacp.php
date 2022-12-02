@@ -8,8 +8,10 @@ $instance = Runner::instance();
 $maxProcess = 5;
 // sleep on before execute next loop
 $sleepWait = 5;
+// determine that loop process need to clear cycles
+$collect_cycle_loop = 10;
 
-$instance->start($maxProcess, $sleepWait);
+$instance->start($maxProcess, $sleepWait, $collect_cycle_loop);
 
 __halt_compiler();
 // stop here
