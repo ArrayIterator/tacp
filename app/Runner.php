@@ -72,6 +72,16 @@ use const PHP_VERSION;
  */
 class Runner
 {
+    const DEFAULT_PROCESS = 5;
+    const MIN_PROCESS = 1;
+    const MAX_PROCESS = 100;
+    const DEFAULT_WAIT = 5;
+    const MIN_WAIT = 1;
+    const MAX_WAIT = 60;
+    const DEFAULT_COLLECT_CYCLES_LOOP = 10;
+    const MIN_COLLECT_CYCLES_LOOP = 5;
+    const MAX_COLLECT_CYCLES_LOOP = 100;
+
     const TABLE_CHECK = 'contents';
     const APP_NAME        = 'Telkomsel Aggregator Task Queue';
     const APP_VERSION     = '1.0.0';
@@ -248,11 +258,6 @@ class Runner
     private $application = null;
 
     /**
-     * @var int
-     */
-    private $maxProcess = 5;
-
-    /**
      * @var InputInterface
      */
     private $input = null;
@@ -303,12 +308,17 @@ class Runner
     /**
      * @var int
      */
-    private $wait = 5;
+    private $maxProcess = self::DEFAULT_PROCESS;
 
     /**
      * @var int
      */
-    private $collect_cycle_loop = 10;
+    private $wait = self::DEFAULT_WAIT;
+
+    /**
+     * @var int
+     */
+    private $collect_cycle_loop = self::DEFAULT_COLLECT_CYCLES_LOOP;
 
     /**
      * @var string
@@ -796,25 +806,36 @@ class Runner
      *
      * @noinspection PhpMissingParamTypeInspection
      */
-    public function start($maxProcess = 5, $wait = 5, $collect_cycle_loop = 10)
-    {
+    public function start(
+        $maxProcess = self::DEFAULT_PROCESS,
+        $wait = self::DEFAULT_WAIT,
+        $collect_cycle_loop = self::DEFAULT_COLLECT_CYCLES_LOOP
+    ) {
         if (self::$isStarted) {
             return;
         }
         $this->events->dispatch('on:before:applicationStart');
-        $maxProcess           = is_numeric($maxProcess) ? (int) $maxProcess : 5;
-        $maxProcess           = $maxProcess > 20 ? 20 : ($maxProcess < 1 ? 1 : $maxProcess);
-        $collect_cycle_loop   = is_numeric($collect_cycle_loop) ? (int) $collect_cycle_loop : 10;
-        $collect_cycle_loop   = $collect_cycle_loop > 100 ? 100 : (
-            $collect_cycle_loop < 5 ? 5 : $collect_cycle_loop
+        $maxProcess           = is_numeric($maxProcess) ? (int) $maxProcess : self::DEFAULT_PROCESS;
+        $maxProcess           = $maxProcess > self::MAX_PROCESS
+            ? self::MAX_PROCESS
+            : ($maxProcess < self::MIN_PROCESS ? self::MIN_PROCESS : $maxProcess);
+        $collect_cycle_loop   = is_numeric($collect_cycle_loop)
+            ? (int) $collect_cycle_loop
+            : self::DEFAULT_COLLECT_CYCLES_LOOP;
+        $collect_cycle_loop   = $collect_cycle_loop > self::MAX_COLLECT_CYCLES_LOOP
+            ? self::MAX_COLLECT_CYCLES_LOOP : (
+                $collect_cycle_loop < self::MIN_COLLECT_CYCLES_LOOP
+                    ? self::MIN_COLLECT_CYCLES_LOOP
+                    : $collect_cycle_loop
+            );
+
+        $wait = is_numeric($wait) ? (int) $wait : self::DEFAULT_WAIT;
+        $wait = $wait < self::MIN_WAIT ? self::MIN_WAIT : (
+            $wait > self::MAX_WAIT ? self::MAX_WAIT : $wait
         );
-        $wait = is_numeric($wait) ? (int) $wait : 5;
-        if ($wait < 1) {
-            $wait = 5;
-        }
 
         $this->maxProcess = $maxProcess;
-        $this->wait           = $wait;
+        $this->wait       = $wait;
         $this->collect_cycle_loop = $collect_cycle_loop;
 
         $this->application->start();
