@@ -30,7 +30,6 @@ class Sqlite extends AbstractDatabase
     public function getConnection() : PDO
     {
         if (!$this->connection) {
-
             $this->runner->events->dispatch('on:before:createConnection', $this);
 
             if (!file_exists($this->sqlite)) {

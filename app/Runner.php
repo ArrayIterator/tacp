@@ -593,7 +593,8 @@ class Runner
         if ($check !== true) {
             $this->console->error(
                 sprintf(
-                    'AWS Service Error: %s', $aws->error?->getMessage()?:'Unknown Error.'
+                    'AWS Service Error: %s',
+                    $aws->error?->getMessage()?:'Unknown Error.'
                 )
             );
             exit(255);

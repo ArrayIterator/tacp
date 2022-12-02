@@ -115,7 +115,6 @@ class Postgre extends AbstractDatabase
     public function getConnection() : PDO
     {
         if (!$this->connection) {
-
             $this->runner->events->dispatch('on:before:createConnection', $this);
 
             $this->check();
