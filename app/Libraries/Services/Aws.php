@@ -337,8 +337,6 @@ class Aws extends AbstractService
             $args
         );
 
-        // @todo delete
-        file_put_contents($this->services->runner->cwd.'/upload.txt', print_r($result->toArray(), true));
         return $result;
     }
 
