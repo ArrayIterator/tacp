@@ -783,6 +783,12 @@ class Runner
         $this->services = new Services($this);
     }
 
+    /**
+     * Collect the redundant collections
+     *  & clear object cached services
+     *
+     * @uses gc_collect_cycles()
+     */
     public function collectCycles()
     {
         $this->events->dispatch('on:before:clearCycles');
