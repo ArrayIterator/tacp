@@ -22,7 +22,7 @@ php8.1 composer.phar install
 ### BUILD PHAR (SINGLE ARCHIVE)
 
 ```bash
-bash build/deploy.bash
+bash deploy/build.bash
 ```
 
 phar archive placed in `build/tacp.phar`.
