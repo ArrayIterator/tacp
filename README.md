@@ -89,6 +89,7 @@ Add file `.stop` to `CWD` _(Current Working Directory)._
 
 This will stop application when loop process done.
 
+When `.stop` file exist, this will prevent application to start.  
 
 ### CODING STANDARD
 
