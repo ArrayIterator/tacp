@@ -57,6 +57,9 @@ class CheckDaemon extends Command
                 return !$e['current'];
             });
         }
+        $stopExists = is_string($this->console->runner->stop_file)
+                      && file_exists($this->console->runner->stop_file);
+
         $php = $this->console->runner->php;
         $counted = count((array) $processes);
         $this->console->setAutoExit(true);
@@ -81,6 +84,10 @@ class CheckDaemon extends Command
             }
             // checking table
             $this->checkTable($output);
+            $output->writeln(
+                '<fg=red>File ".stop" already exist! Application could not started! Please delete first.</>'
+            );
+
             return self::SUCCESS;
         }
 
@@ -117,14 +124,21 @@ class CheckDaemon extends Command
                 )
             );
         }
-        $output->writeln(
-            "<fg=blue>Please run:</>"
-        );
-        $file = $this->console->runner->file;
-        $file = realpath($file)?:$file;
-        $output->writeln(
-            "\t$php $file daemon:start"
-        );
+        if (!$stopExists) {
+            $output->writeln(
+                "<fg=blue>Please run:</>"
+            );
+            $file = $this->console->runner->file;
+            $file = realpath($file) ?: $file;
+            $output->writeln(
+                "\t$php $file daemon:start"
+            );
+        } else {
+            $output->writeln('');
+            $output->writeln(
+                "\tFile \".stop\" already exist! Application could not started! Please delete first."
+            );
+        }
         return self::SUCCESS;
     }
 
