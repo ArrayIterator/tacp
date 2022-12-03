@@ -52,23 +52,30 @@ class Aws extends AbstractService
         'us-west-2',
     ];
 
-    #[ArrayShape([
-        'region' => 'string',
-        'secret' => 'string',
-        'key' => 'string',
-        'bucket' => 'string',
-        'uri' => '?string',
-        'chunk_size' => 'int',
-    ])] public readonly array $config;
-    private ?Throwable $error = null;
+
+    /**
+     * @var ?S3Client
+     */
     private ?S3Client $s3Client = null;
+
+    /**
+     * @var ?StreamInterface
+     */
     private ?StreamInterface $stream = null;
+
+    /**
+     * @var bool
+     */
     private bool $unauthenticated = false;
 
-    public function __construct(Services $services)
+    /**
+     * @param Services $services
+     * @param array|null $config
+     * @see Aws::$config
+     */
+    public function __construct(Services $services, ?array $config = null)
     {
-        parent::__construct($services);
-        $config = $this->services->runner->awsConfig;
+        $config ??= $services->runner->awsConfig;
         $region = $config['region']??null;
         $region = is_string($region) ? strtolower(trim($region)) : null;
         $secret  = $config['secret']??null;
@@ -87,16 +94,26 @@ class Aws extends AbstractService
         $uploadSize = $uploadSize > self::DEFAULT_PART_MAX_SIZE
             ? self::DEFAULT_PART_MAX_SIZE
             : $uploadSize;
-
-        $configs = [
+        parent::__construct($services, [
             'region' => $region,
             'secret' => $secret,
             'key' => $key,
             'bucket' => $bucket,
             'uri' => $url ? new Uri($url) : null,
             'chunk_size' => $uploadSize,
-        ];
-        $this->config = $configs;
+        ]);
+    }
+
+    #[ArrayShape([
+        'region' => 'string',
+        'secret' => 'string',
+        'key' => 'string',
+        'bucket' => 'string',
+        'uri' => '?string',
+        'chunk_size' => 'int',
+    ])] public function getConfig(): array
+    {
+        return $this->config;
     }
 
     /**
@@ -162,6 +179,11 @@ class Aws extends AbstractService
         return $this->s3Client;
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     *
+     * @return Result|int
+     */
     public function process(array $arguments): Result|int
     {
         $file = $arguments['source']??null;
@@ -169,7 +191,12 @@ class Aws extends AbstractService
         return $this->doUpload($file, $target);
     }
 
-    public function delete($target): Result|int
+    /**
+     * @param string $target
+     *
+     * @return Result|int
+     */
+    public function delete(string $target): Result|int
     {
         if ($this->unauthenticated) {
             if (!$this->error) {
@@ -178,12 +205,6 @@ class Aws extends AbstractService
             return self::SERVICE_UNAUTHENTICATED;
         }
 
-        if (!is_string($target)) {
-            $this->error = new FileNotFoundException(
-                'Target file is not valid'
-            );
-            return self::SERVICE_INVALID_ARGUMENT;
-        }
         $s3Client = $this->getS3();
         if (!$s3Client instanceof S3Client) {
             return $s3Client;
@@ -217,11 +238,19 @@ class Aws extends AbstractService
                 );
                 return $serviceResponse;
             }
+            $result = self::SERVICE_FAILED;
         }
+
         return $result;
     }
 
-    public function doUpload($fileName, $target): Result|int
+    /**
+     * @param string $fileName
+     * @param string $target
+     *
+     * @return Result|int
+     */
+    public function doUpload(string $fileName, string $target): Result|int
     {
         if ($this->unauthenticated) {
             if (!$this->error) {
@@ -231,16 +260,15 @@ class Aws extends AbstractService
         }
 
         $this->error = null;
-        if (!is_string($fileName) || !is_file($fileName) || !is_readable($fileName)) {
+        if (trim($fileName) === '' || !is_file($fileName) || !is_readable($fileName)) {
             $this->error = new FileNotFoundException(
-                path: is_string($fileName) ? $fileName : null
+                path: $fileName
             );
             return self::SERVICE_INVALID_ARGUMENT;
         }
-
-        if (!is_string($target)) {
+        if (trim($target) === '') {
             $this->error = new FileNotFoundException(
-                'Target file is not valid'
+                'Target file could not be empty'
             );
             return self::SERVICE_INVALID_ARGUMENT;
         }
@@ -251,6 +279,7 @@ class Aws extends AbstractService
             return $s3Client;
         }
 
+        $target = trim($target);
         $bucket = $this->config['bucket'];
         $this->stream = new Stream(fopen($fileName, 'rb'));
         $args = [
@@ -340,17 +369,33 @@ class Aws extends AbstractService
         return $result;
     }
 
+    /**
+     * Destruction
+     */
     public function __destruct()
     {
         $this->stream?->close();
         $this->stream = null;
     }
 
+    /**
+     * Define setter
+     *
+     * @param $name
+     * @param $value
+     */
     public function __set($name, $value)
     {
         // pass
     }
 
+    /**
+     * Define getter
+     *
+     * @param string $name
+     *
+     * @return mixed
+     */
     public function __get(string $name)
     {
         if ($name === 'stream') {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace TelkomselAggregatorTask\Libraries;
 
 use JetBrains\PhpStorm\Pure;
+use Throwable;
 
 abstract class AbstractService implements ServiceInterface
 {
@@ -24,14 +25,31 @@ abstract class AbstractService implements ServiceInterface
     protected string $name = '';
 
     /**
-     * @param Services $services
+     * @var array
      */
-    public function __construct(Services $services)
+    public readonly array $config;
+
+    /**
+     * @var ?Throwable
+     */
+    protected ?Throwable $error = null;
+
+    /**
+     * @param Services $services
+     * @param array|null $config
+     */
+    public function __construct(Services $services, ?array $config = null)
     {
         $this->services = $services;
         if ($this->name === '') {
             $this->name = trim(strrchr(get_class($this), '\\'));
         }
+        $this->config = $config??[];
+    }
+
+    public function getConfig() : array
+    {
+        return $this->config;
     }
 
     /**
@@ -50,11 +68,19 @@ abstract class AbstractService implements ServiceInterface
         return $this->name;
     }
 
+    public function getError() : ?Throwable
+    {
+        return $this->error;
+    }
+
     /**
      * @param array $arguments
      */
     abstract public function process(array $arguments);
 
+    /**
+     * @return string
+     */
     #[Pure] public function __toString(): string
     {
         return $this->getName();

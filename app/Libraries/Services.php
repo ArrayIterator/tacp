@@ -28,6 +28,9 @@ class Services
      */
     private array $activeServices = [];
 
+    /**
+     * @param Runner $runner
+     */
     public function __construct(Runner $runner)
     {
         $this->runner = $runner;
@@ -81,7 +84,7 @@ class Services
     {
         $lower = strtolower(trim($name));
         return $this->getServicesCollections()[$lower]??
-                     $this->getServicesCollectionsClassBase()[$lower]??null;
+             $this->getServicesCollectionsClassBase()[$lower]??null;
     }
 
     /**
@@ -92,6 +95,14 @@ class Services
         $this->activeServices = [];
         self::$serviceList = null;
         self::$serviceListLower = null;
+    }
+
+    /**
+     * @return array<string, AbstractService>
+     */
+    public function getActiveServices() : array
+    {
+        return $this->activeServices;
     }
 
     /**

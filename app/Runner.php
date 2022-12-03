@@ -39,12 +39,13 @@ use const PHP_VERSION;
  * @property-read string $which
  * @property-read string $php
  * @property-read int $cli_length
- * @property-read int $php_version
+ * @property-read string $php_version
  * @property-read bool $cli
  * @property-read string $cwd
  * @property-read string $user
  * @property-read int $uid
  * @property-read int $gid
+ * @property-read int $inode
  * @property-read int $pid
  * @property-read int $maxProcess
  * @property-read string $pid_dir
@@ -445,7 +446,8 @@ class Runner
             exit(255);
         }
 
-        if (!preg_match('~([\\\/]|^)(test|tacp)(?:\.php|\.phar)?$~', $this->file)) {
+        if ((!defined('UNIT_TEST') || UNIT_TEST !== true)
+            && !preg_match('~([\\\/]|^)(test|tacp)(?:\.php|\.phar)?$~', $this->file)) {
             $this->printError(
                 "\033[0;31mApplication file execution is invalid.\033[0m",
             );
@@ -612,7 +614,7 @@ class Runner
     }
 
     /**
-     * @param $command
+     * @param string $command command could not contain rm|del|ln|remove
      * @param bool $asString
      *
      * @return array|false|string
@@ -620,11 +622,12 @@ class Runner
      */
     public function shell($command, $asString = true)
     {
-        if (preg_match('~^(.+[a-z][\\\/])?rm\s+~i', $command)) {
+        if (preg_match('~^(.+[\\\/]?)?(del[^\s]*|rm[^\s]*|rem[^\s]*|ln)(\s+|\s*$)~i', $command)) {
             throw new RuntimeException(
                 'Can not execute command: '. $command
             );
         }
+
         $res = shell_exec($command);
         if (is_string($res)) {
             $res = trim($res);
@@ -662,7 +665,7 @@ class Runner
 
     public function __get(string $name)
     {
-        return $this->$name;
+        return property_exists($this, $name) ? $this->$name : null;
     }
 
     public function getProcess()
