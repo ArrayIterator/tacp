@@ -816,6 +816,9 @@ class Runner
         return $theProcessPid;
     }
 
+    /**
+     * Recreaet default Objects instance
+     */
     private function createDefaultObjectInstance()
     {
         $this->readConfigurations();
