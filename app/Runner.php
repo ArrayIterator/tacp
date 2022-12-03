@@ -83,7 +83,7 @@ class Runner
     const MIN_COLLECT_CYCLES_LOOP = 5;
     const MAX_COLLECT_CYCLES_LOOP = 100;
 
-    const TABLE_CHECK = 'contents';
+    const TABLE_CHECK     = 'contents';
     const APP_NAME        = 'Telkomsel Aggregator Task Queue';
     const APP_VERSION     = '1.0.0';
     const PHP_MIN_VERSION = '8.1.0';
@@ -369,7 +369,7 @@ class Runner
     }
 
     /**
-     * @param $error
+     * @param string|array $error
      *
      * @noinspection PhpNoReturnAttributeCanBeAddedInspection
      */
@@ -556,6 +556,11 @@ class Runner
         return true;
     }
 
+    /**
+     * Re read configurations
+     *
+     * @return array|mixed
+     */
     public function readConfigurations()
     {
         $this->config = [];
@@ -591,6 +596,9 @@ class Runner
         return $this->config;
     }
 
+    /**
+     * Check the services
+     */
     public function checkServices()
     {
         $aws = $this->services->getService('aws');
@@ -641,16 +649,34 @@ class Runner
         return array_map('trim', explode("\n", $res));
     }
 
+    /**
+     * @param string $command
+     *
+     * @return array|false|string
+     * @noinspection PhpMissingParamTypeInspection
+     */
     public function shellArray($command)
     {
         return $this->shell($command, false);
     }
 
+    /**
+     * @param string $command
+     *
+     * @return array|false|string
+     * @noinspection PhpMissingParamTypeInspection
+     */
     public function shellString($command)
     {
         return $this->shell($command);
     }
 
+    /**
+     * @param ?InputInterface $input
+     *
+     * @return ?SymfonyStyle
+     * @noinspection PhpMissingParamTypeInspection
+     */
     public function createNewConsoleOutput($input = null)
     {
         $input = $input instanceof InputInterface ? $input : $this->input;
@@ -658,16 +684,29 @@ class Runner
         return $this->console;
     }
 
-    public function __set(string $name, $value): void
+    /**
+     * @param string $name
+     * @param string $value
+     * @noinspection PhpMissingParamTypeInspection
+     */
+    public function __set($name, $value)
     {
         // return
     }
 
-    public function __get(string $name)
+    /**
+     * @param string $name
+     *
+     * @noinspection PhpMissingParamTypeInspection
+     */
+    public function __get($name)
     {
         return property_exists($this, $name) ? $this->$name : null;
     }
 
+    /**
+     * @return array|false
+     */
     public function getProcess()
     {
         $ps = $this->ps;
@@ -689,7 +728,8 @@ class Runner
         foreach ($result as $item) {
             preg_match(
                 '~^(?P<pid>[0-9]+)\s+(?P<tty>[^\s]+)\s+(?P<status>[^\s]+)
-                \s+(?P<time>[^\s]+)\s+(?P<command>.+)$~x',
+                \s+(?P<time>[^\s]+)
+                \s+(?P<command>.+)$~x',
                 $item,
                 $match
             );
