@@ -130,6 +130,7 @@ class Runner
     private $required_extensions = [
         'pdo_pgsql',
         'pdo_sqlite',
+        'exif',
         'json',
         'curl',
         'openssl',
@@ -470,6 +471,16 @@ class Runner
                 ], array_map(function ($e) {
                     return "  $e";
                 }, $extensions_not_exists)),
+            );
+            exit(255);
+        }
+        if (!extension_loaded('imagick') && !extension_loaded('gd')) {
+            $this->printError(
+                [
+                    "\033[0;31mOne or both extension should to be enabled : \033[0m\n",
+                    'imagick',
+                    'gd'
+                ]
             );
             exit(255);
         }
