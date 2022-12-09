@@ -4,28 +4,34 @@ declare(strict_types=1);
 namespace TelkomselAggregatorTask\Libraries\Helper\Image;
 
 use Psr\Http\Message\StreamInterface;
-use RuntimeException;
+use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Exceptions\UnsupportedAdapter;
 use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Gd;
 use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\ImageAdapterInterface;
 use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Imagick;
 
-class Resizer
+class ResizerFactory implements ResizerFactoryInterface
 {
     const USE_GD = 1;
     const USE_IMAGICK = 2;
 
+    /**
+     * @var int|false|null USE_GD|USE_IMAGICK
+     */
     private static int|null|false $imageGenerationMode = null;
-
+    private static bool $GdExists = false;
+    private static bool $ImagickExists = false;
     public function __construct()
     {
         if (self::$imageGenerationMode === null) {
-            self::$imageGenerationMode = extension_loaded('imagick')
+            self::$GdExists            = extension_loaded('gd');
+            self::$ImagickExists       = extension_loaded('imagick');
+            self::$imageGenerationMode = self::$ImagickExists
                 ? self::USE_IMAGICK
-                : (extension_loaded('gd') ? self::USE_GD : false);
+                : (self::$GdExists ? self::USE_GD : false);
         }
 
         if (self::$imageGenerationMode === false) {
-            throw new RuntimeException(
+            throw new UnsupportedAdapter(
                 'Extension gd or imagick has not been installed on the system.'
             );
         }
@@ -41,5 +47,22 @@ class Resizer
         return self::$imageGenerationMode === self::USE_IMAGICK
             ? new Imagick($this, $source)
             : new Gd($this, $source);
+    }
+
+    /**
+     * @param int $used
+     * @param mixed $source
+     *
+     * @return ImageAdapterInterface
+     */
+    public function possibleUse(int $used, mixed $source): ImageAdapterInterface
+    {
+        if ($used === self::USE_GD && self::$GdExists) {
+            return new Gd($this, $source);
+        }
+        if ($used === self::USE_IMAGICK && self::$ImagickExists) {
+            return new Imagick($this, $source);
+        }
+        return $this->create($source);
     }
 }

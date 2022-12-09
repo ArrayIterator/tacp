@@ -11,7 +11,7 @@ use JetBrains\PhpStorm\Pure;
 use Psr\Http\Message\StreamInterface;
 use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Exceptions\ImageFileNotFoundException;
 use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Exceptions\ImageIsNotSupported;
-use TelkomselAggregatorTask\Libraries\Helper\Image\Resizer;
+use TelkomselAggregatorTask\Libraries\Helper\Image\ResizerFactory;
 
 abstract class AbstractImageAdapter implements ImageAdapterInterface
 {
@@ -21,9 +21,9 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
     protected int $maximumSourceSize = 10485760;
 
     /**
-     * @var Resizer
+     * @var ResizerFactory
      */
-    public readonly Resizer $resizer;
+    public readonly ResizerFactory $resizer;
 
     /**
      * @var int
@@ -76,12 +76,21 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
     private bool $use_temp = false;
 
     /**
-     * @param Resizer $resizer
+     * @var string
+     */
+    public readonly string $tempDir;
+
+    /**
+     * @param ResizerFactory $resizer
      * @param resource|string|StreamInterface $source
      */
-    final public function __construct(Resizer $resizer, mixed $source)
+    final public function __construct(ResizerFactory $resizer, mixed $source)
     {
         $this->resizer = $resizer;
+        $this->tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'image-resize';
+        if (!is_dir($this->tempDir)) {
+            mkdir($this->tempDir, 755, true);
+        }
         if (is_string($source)) {
             if (!is_file($source) || !is_readable($source)) {
                 throw new ImageFileNotFoundException(
@@ -127,7 +136,7 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
                 );
             }
             unset($size);
-            $this->file_source = tempnam(sys_get_temp_dir(), 'tmp-image-');
+            $this->file_source = tempnam($this->tempDir, 'tmp-image-');
             $fopen = fopen($this->file_source, 'rb+');
             $size = 0;
             while (!feof($source)) {
@@ -250,6 +259,58 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
     }
 
     /**
+     * @param int $sourceWidth
+     * @param int $sourceHeight
+     * @param int $desiredWidth
+     * @param int $desiredHeight
+     *
+     * @return array{"0":int,"1":int,"2":int,"3":int,"4":float,"5":array<array>}
+     */
+    public function calculateOffset(
+        int $sourceWidth,
+        int $sourceHeight,
+        int $desiredWidth,
+        int $desiredHeight
+    ): array {
+        $source_aspect_ratio = $sourceWidth / $sourceHeight;
+        $desired_aspect_ratio = $desiredWidth / $desiredHeight;
+        if ($source_aspect_ratio > $desired_aspect_ratio) {
+            /*
+             * Triggered when source image is wider
+             */
+            $scaledHeight = $desiredHeight;
+            $scaledWidth = ($desiredHeight * $source_aspect_ratio);
+        } else {
+            /*
+             * Triggered otherwise (i.e. source image is similar or taller)
+             */
+            $scaledWidth = $desiredWidth;
+            $scaledHeight = ($desiredWidth / $source_aspect_ratio);
+        }
+        $offsetX = (int) (($scaledWidth - $desiredWidth) / 2);
+        $offsetY = ( int ) (($scaledHeight - $desiredHeight) / 2);
+        return [
+            (int) round($scaledWidth),
+            (int) round($scaledHeight),
+            $offsetX,
+            $offsetY,
+            (float) ($scaledWidth / $scaledHeight),
+            [
+                'source' => [
+                    'aspect_ratio' => $source_aspect_ratio,
+                    'width' => $sourceWidth,
+                    'height' => $sourceHeight,
+                ],
+                'desired' => [
+                    'aspect_ratio' => $desired_aspect_ratio,
+                    'width' => $desiredWidth,
+                    'height' => $desiredHeight,
+                ]
+            ],
+        ];
+    }
+
+    /**
      * @return bool
      */
     public function isUseTemp(): bool
@@ -363,7 +424,6 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
                 return false;
             }
         }
-
         return in_array(
             $mimeType,
             $this->getSupportedMimeTypeExtensions(),
@@ -525,18 +585,33 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
         ];
     }
 
-    public static function fromStreamResource($imageResource, Resizer $resizer): static
+    public static function fromStreamResource($imageResource, ResizerFactory $resizer): static
     {
         return new static($resizer, $imageResource);
     }
 
-    public static function fromSteamInterface(StreamInterface $stream, Resizer $resizer): static
+    public static function fromSteamInterface(StreamInterface $stream, ResizerFactory $resizer): static
     {
         return new static($resizer, $stream);
     }
 
-    public static function fromFile(string $imageFile, Resizer $resizer): static
+    public static function fromFile(string $imageFile, ResizerFactory $resizer): static
     {
         return new static($resizer, $imageFile);
+    }
+
+    abstract protected function clearResource();
+
+    public function __destruct()
+    {
+        $this->clearResource();
+        $debug = (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 4));
+        if (count($debug) === 1
+            && count($debug[0]) === 3
+            && $this->isUseTemp() && is_file($this->getFileSource())
+            && str_starts_with($this->getFileSource(), $this->tempDir)
+        ) {
+            unlink($this->getFileSource());
+        }
     }
 }

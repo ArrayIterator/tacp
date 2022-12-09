@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace TelkomselAggregatorTask\Libraries\Helper\Image\Adapter;
 
 use Psr\Http\Message\StreamInterface;
-use TelkomselAggregatorTask\Libraries\Helper\Image\Resizer;
+use TelkomselAggregatorTask\Libraries\Helper\Image\ResizerFactory;
 
 interface ImageAdapterInterface
 {
@@ -144,25 +144,25 @@ interface ImageAdapterInterface
 
     /**
      * @param resource $imageResource fopen()
-     * @param Resizer $resizer
+     * @param ResizerFactory $resizer
      *
      * @return static
      */
-    public static function fromStreamResource($imageResource, Resizer $resizer) : static;
+    public static function fromStreamResource($imageResource, ResizerFactory $resizer) : static;
 
     /**
      * @param StreamInterface $stream
-     * @param Resizer $resizer
+     * @param ResizerFactory $resizer
      *
      * @return static
      */
-    public static function fromSteamInterface(StreamInterface $stream, Resizer $resizer) : static;
+    public static function fromSteamInterface(StreamInterface $stream, ResizerFactory $resizer) : static;
 
     /**
      * @param string $imageFile
-     * @param Resizer $resizer
+     * @param ResizerFactory $resizer
      *
      * @return static
      */
-    public static function fromFile(string $imageFile, Resizer $resizer) : static;
+    public static function fromFile(string $imageFile, ResizerFactory $resizer) : static;
 }

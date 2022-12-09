@@ -99,73 +99,6 @@ class Gd extends AbstractImageAdapter
     }
 
     /**
-     * @param GdImage $sourceGD
-     * @param int $height
-     * @param int $width
-     *
-     * @return ?GdImage
-     */
-    private function cropProcess(
-        GdImage $sourceGD,
-        int $width,
-        int $height
-    ): ?GdImage {
-        $source_width  = imagesx($sourceGD);
-        $source_height = imagesy($sourceGD);
-        $source_aspect_ratio = $source_width / $source_height;
-        $desired_aspect_ratio = $width / $height;
-        if ($source_aspect_ratio > $desired_aspect_ratio) {
-            /*
-             * Triggered when source image is wider
-             */
-            $temp_height = $height;
-            $temp_width = ( int ) ($height * $source_aspect_ratio);
-        } else {
-            /*
-             * Triggered otherwise (i.e. source image is similar or taller)
-             */
-            $temp_width = $width;
-            $temp_height = ( int ) ($width / $source_aspect_ratio);
-        }
-
-        /*
-         * Resize the image into a temporary GD image
-         */
-
-        $temporaryGD = imagecreatetruecolor($temp_width, $temp_height);
-        imagecopyresampled(
-            $temporaryGD,
-            $sourceGD,
-            0,
-            0,
-            0,
-            0,
-            $temp_width,
-            $temp_height,
-            $source_width,
-            $source_height
-        );
-        /*
-         * Copy cropped region from temporary image into the desired GD image
-         */
-        $x0 = (($temp_width - $width) / 2);
-        $y0 = ( int ) (($temp_height - $height) / 2);
-        $resultGD = imagecreatetruecolor($width, $height);
-        imagecopy(
-            $resultGD,
-            $temporaryGD,
-            0,
-            0,
-            $x0,
-            $y0,
-            $width,
-            $height
-        );
-        imagedestroy($temporaryGD);
-        return $resultGD;
-    }
-
-    /**
      * @param int $width
      * @param int $height
      * @param int $mode
@@ -186,15 +119,55 @@ class Gd extends AbstractImageAdapter
         if ($this->image_resized instanceof GdImage) {
             imagedestroy($this->image_resized);
         }
+        $offsetX = 0;
+        $offsetY = 0;
         if (($mode & self::MODE_CROP) === self::MODE_CROP
             || (!$this->isSquare()
                 && ($mode & self::MODE_ORIENTATION_SQUARE) === self::MODE_ORIENTATION_SQUARE
             )
         ) {
-            $this->image_resized = $this->cropProcess(
+            $width = $dimensions['width'];
+            $height = $dimensions['height'];
+            [
+                $tempWidth,
+                $tempHeight,
+                $offsetX,
+                $offsetY
+                ] = $this->calculateOffset(
+                    $srcWidth,
+                    $srcHeight,
+                    $width,
+                    $height
+                );
+            $resource = $this->resource;
+            /*
+             * Resize the image into a temporary GD image
+             */
+            $this->resource = imagecreatetruecolor($tempWidth, $tempHeight);
+            imagecopyresampled(
                 $this->resource,
-                $dimensions['width'],
-                $dimensions['height']
+                $resource,
+                0,
+                0,
+                0,
+                0,
+                $tempWidth,
+                $tempHeight,
+                $srcWidth,
+                $srcHeight
+            );
+            // freed
+            imagedestroy($resource);
+            $this->image_resized = imagecreatetruecolor($width, $height);
+            imagecopy(
+                $this->image_resized,
+                $this->resource,
+                0,
+                0,
+                $offsetX,
+                $offsetY,
+                $width,
+                $height,
             );
         } else {
             $this->image_resized = imagecreatetruecolor($dimensions['width'], $dimensions['height']);
@@ -203,19 +176,17 @@ class Gd extends AbstractImageAdapter
                 $this->resource,
                 0,
                 0,
-                0,
-                0,
+                $offsetX,
+                $offsetY,
                 $dimensions['width'],
                 $dimensions['height'],
                 $srcWidth,
                 $srcHeight,
             );
         }
-
+        imagedestroy($this->resource);
         $this->width  = imagesx($this->image_resized);
         $this->height = imagesy($this->image_resized);
-
-        imagedestroy($this->resource);
         $this->resource = null;
         return $this;
     }
@@ -370,17 +341,5 @@ class Gd extends AbstractImageAdapter
 
         $this->resource = null;
         $this->image_resized = null;
-    }
-
-    public function __destruct()
-    {
-        $this->clearResource();
-        $debug = (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 4));
-        if (count($debug) === 1
-            && count($debug[0]) === 3
-            && $this->isUseTemp() && is_file($this->getFileSource())
-        ) {
-            unlink($this->getFileSource());
-        }
     }
 }
