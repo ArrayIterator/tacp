@@ -106,10 +106,11 @@ class Services
     }
 
     /**
-     * @param string $name
+     * @template T<AbstractService>
+     * @param class-string<T>|string $name
      * @param bool $reuse
      *
-     * @return ?AbstractService
+     * @return ?T
      */
     public function getService(string $name, bool $reuse = true) : ?AbstractService
     {
