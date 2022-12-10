@@ -39,3 +39,12 @@ aws:
   # url use for replace for cloudfront string
   # url: https://example-bucket.s3-region.amazonaws.com/
   url: https://random-string.cloudfront.net/
+
+# Screenshot size
+screenshot:
+  # image width
+  height: 640
+  # image height
+  width: 640
+  # frame in second to get
+  second: 2
