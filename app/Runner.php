@@ -553,7 +553,7 @@ class Runner
                     "/usr/bin/$binary",
                     "/bin/$binary",
                 ] as $p_search) {
-                    if (!file_exists($p_search) && is_executable($p_search)) {
+                    if (file_exists($p_search) && is_executable($p_search)) {
                         $binaryShell = $p_search;
                         break;
                     }
