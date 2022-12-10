@@ -46,8 +46,7 @@ final class Cleaner extends AbstractService
                 $time = filemtime($file);
                 $owner = fileowner($file);
                 if ($owner === $this->services->runner->uid && ($time - $two_days) > 0) {
-                    //unlink($file);
-                    echo $file."\n";
+                    unlink($file);
                 }
                 continue;
             }
