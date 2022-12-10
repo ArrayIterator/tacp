@@ -5,6 +5,7 @@ namespace TelkomselAggregatorTask\Libraries\Services;
 
 use InvalidArgumentException;
 use JetBrains\PhpStorm\Pure;
+use RuntimeException;
 use TelkomselAggregatorTask\Libraries\AbstractService;
 use TelkomselAggregatorTask\Libraries\Helper\Ffmpeg\FrameAncestor;
 use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\ImageAdapterInterface;
@@ -78,6 +79,23 @@ class ThumbnailGenerator extends AbstractService
             ImageAdapterInterface::MODE_CROP
         )->saveTo($fileName, 90, true, 'jpg');
         unset($frame, $meta);
+        if (!$result) {
+            return null;
+        }
+        if (!is_file($result['path'])) {
+            return null;
+        }
+        $width  = (int) $result['width'];
+        $height = (int) $result['height'];
+        if ($this->config['width'] !== $width
+            || $this->config['height'] !== $height
+        ) {
+            unlink($result['path']);
+            throw new RuntimeException(
+                'Image resolutions result not as expected size'
+            );
+        }
+
         return $result;
     }
 }

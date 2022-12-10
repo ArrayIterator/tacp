@@ -92,6 +92,13 @@ class Imagick extends AbstractImageAdapter
     }
 
     /**
+     * @param string $target
+     * @param int $quality
+     * @param bool $overwrite
+     * @param string|null $forceOverrideExtension
+     * @param bool $strip
+     *
+     * @return ?array{"width":int,"height":int,"path":string,"type":string}
      * @throws ImagickException
      */
     public function saveTo(

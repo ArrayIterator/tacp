@@ -199,7 +199,7 @@ class Gd extends AbstractImageAdapter
      * @param bool $overwrite force rewrite existing image if there was path exists
      * @param string|null $forceOverrideExtension force using extensions with certain output
      *
-     * @return ?array                null if on fail otherwise array
+     * @return ?array{"width":int,"height":int,"path":string,"type":string} null if on fail otherwise array
      */
     public function saveTo(
         string $target,
