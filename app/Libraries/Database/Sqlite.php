@@ -120,6 +120,10 @@ class Sqlite extends AbstractDatabase
                    created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
                    updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
+                CREATE TABLE IF NOT EXISTS `meta`(
+                   task_name INTEGER NOT NULL UNIQUE,
+                   result TEXT DEFAULT NULL
+                );
                 CREATE TRIGGER IF NOT EXISTS task_queue_update_current_timestamp
                     AFTER UPDATE
                     ON `$table`
