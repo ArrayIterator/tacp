@@ -45,7 +45,7 @@ class ThumbnailGenerator extends AbstractService
     /**
      * @param array{"video":string} $arguments
      *
-     * @return array|null
+     * @return ?array{"width":int,"height":int,"path":string,"type":string}
      * @throws Throwable
      */
     public function process(array $arguments): ?array

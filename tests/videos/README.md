@@ -6,3 +6,7 @@ Taken From : [file-examples.com](https://file-examples.com/index.php/sample-vide
 - Durations: 30 Seconds
 - Video Resolutions: 1280x720
 - Size: 10MB
+
+### 640 x 640 Thumbnails
+
+![640x640.jpg](640x640.jpg)
