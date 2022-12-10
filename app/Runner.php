@@ -4,6 +4,7 @@
  * @noinspection PhpMissingFieldTypeInspection
  * @noinspection PhpUnusedPrivateFieldInspection
  * @noinspection PhpPropertyOnlyWrittenInspection
+ * @noinspection PhpMissingParamTypeInspection
  */
 namespace TelkomselAggregatorTask;
 
@@ -70,9 +71,12 @@ use const PHP_VERSION;
  * @property-read Services $services
  * @property-read int $collect_cycle_loop
  * @property-read Simple $events
+ * @property-read string $cache_directory
+ * @property-read array{"width":int,"height":int,"second":int} $screen_shot_config
  */
 class Runner
 {
+    const BASE_CACHE_NAME = 'tacp-cache';
     const DEFAULT_PROCESS = 5;
     const MIN_PROCESS = 1;
     const MAX_PROCESS = 100;
@@ -292,6 +296,7 @@ class Runner
      * @var array
      */
     private $config = [];
+
     /**
      * @var ?string
      */
@@ -333,6 +338,20 @@ class Runner
     private $events = null;
 
     /**
+     * @var string
+     */
+    private $cache_directory;
+
+    /**
+     * @var int[]
+     */
+    private $screen_shot_config = [
+        'width' => 640,
+        'height' => 640,
+        'second' => 2
+    ];
+
+    /**
      * Construct Data
      */
     private function __construct()
@@ -353,6 +372,7 @@ class Runner
         $this->pid = (int) getmypid();
         $this->pid_dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . self::IDENTITY_PID;
         $this->stop_file = $this->cwd . DIRECTORY_SEPARATOR . '.stop';
+        $this->cache_directory = ($_SERVER['HOME']??sys_get_temp_dir()).'/'. self::BASE_CACHE_NAME;
     }
 
     /**
@@ -556,6 +576,53 @@ class Runner
             );
             exit(255);
         }
+        if (!is_dir($this->cache_directory)) {
+            mkdir($this->cache_directory, 0755, true);
+        }
+        if (!is_dir($this->cache_directory) || !is_writable($this->cache_directory)) {
+            if (isset($_SERVER['HOME']) && is_writable($_SERVER['HOME'])) {
+                $base = $_SERVER['HOME'] . '/'. self::BASE_CACHE_NAME;
+            } else {
+                $base = sys_get_temp_dir() . '/'. self::BASE_CACHE_NAME;
+            }
+            if (is_file($this->cache_directory) && !is_dir($this->cache_directory)) {
+                $count = 0;
+                do {
+                    $count++;
+                    $this->cache_directory = $base .'-'.$count;
+                    if (is_dir($this->cache_directory) && is_writable($this->cache_directory)) {
+                        break;
+                    }
+                    if ($count > 50) {
+                        break;
+                    }
+                    if (file_exists($this->cache_directory)) {
+                        if (!is_dir($this->cache_directory)) {
+                            continue;
+                        }
+                        if (is_writable($this->cache_directory)) {
+                            break;
+                        }
+                    } else {
+                        if (@mkdir($this->cache_directory, 0755, true)) {
+                            break;
+                        }
+                    }
+                } while (true);
+            } else {
+                $this->cache_directory = $base;
+                if (!is_dir($this->cache_directory)) {
+                    mkdir($this->cache_directory, 0755, true);
+                }
+            }
+        }
+        if (!is_dir($this->cache_directory)) {
+            $this->printError(
+                "\033[0;31mCache Directory Not Found Or Can not to be created \033[0m\n"
+            );
+            exit(255);
+        }
+        $this->cache_directory = realpath($this->cache_directory)?:$this->cache_directory;
         $this->ps     = $this->required_binaries['ps'];
         $this->ffmpeg = $this->required_binaries['ffmpeg'];
         $this->ffprobe = $this->required_binaries['ffprobe'];
@@ -601,6 +668,32 @@ class Runner
                 if (is_array($aws)) {
                     $this->awsConfig = $aws;
                 }
+                $this->config['aws'] = $this->awsConfig;
+                $screenShots = $this->config['screenshot']??[];
+                if (is_array($screenShots)) {
+                    $width = $screenShots['width']??null;
+                    $height = $screenShots['width']??null;
+                    $second = $screenShots['second']??null;
+                    if (is_numeric($width)) {
+                        $this->screen_shot_config['width'] = (int) $width;
+                    }
+                    if (is_numeric($height)) {
+                        $this->screen_shot_config['height'] = (int) $height;
+                    }
+                    if (is_numeric($second)) {
+                        $this->screen_shot_config['second'] = (int) $second;
+                    }
+                    if ($this->screen_shot_config['second'] < 0) {
+                        $this->screen_shot_config['second'] = 1;
+                    }
+                    if ($this->screen_shot_config['height'] < 100) {
+                        $this->screen_shot_config['height'] = 100;
+                    }
+                    if ($this->screen_shot_config['width'] < 100) {
+                        $this->screen_shot_config['width'] = 100;
+                    }
+                }
+                $this->config['screenshot'] = $this->screen_shot_config;
             }
         } catch (Throwable) {
         }
@@ -724,9 +817,9 @@ class Runner
         $user = $this->user;
         $grep = $this->grep;
         $file = basename($this->file);
-        $fileEscape = preg_quote($file, "'");
-        $grepEscape = preg_quote($grep, "'");
-        $userEscape = preg_quote($user, "'");
+        $fileEscape = addcslashes($file, "\\'");
+        $grepEscape = addcslashes($grep, "\\");
+        $userEscape = addcslashes($user, "\\");
         //$uid = $this->uid;
         $result = $this->shellArray(
             "$ps ax -U '$userEscape' | $grep '$fileEscape' | $grep -v $grepEscape | $grep -v grep"
