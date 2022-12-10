@@ -8,6 +8,7 @@ use InvalidArgumentException;
 class VideoMetaData
 {
     private ?int $frameCount = null;
+    private ?int $duration = null;
     private array $fileNames = [];
 
     /**
@@ -46,12 +47,35 @@ class VideoMetaData
         return $this->frameCount;
     }
 
+    public function getDuration(): int
+    {
+        if (is_int($this->duration)) {
+            return $this->duration;
+        }
+        $this->duration = 0;
+        $command = $this->frameAncestor->generateDurationCommand($this->sourceVideoFile);
+        $count = $this->frameAncestor->runner->shellString($command);
+        $count = trim((string) $count);
+        if (is_numeric($count)) {
+            $this->duration = (int) $count;
+        }
+        return $this->duration;
+    }
+
+    /**
+     * @param int $second
+     *
+     * @return ?string
+     */
     public function getFrameInSecond(int $second) : ?string
     {
         if (isset($this->fileNames[$second])) {
             return $this->fileNames[$second]?:null;
         }
 
+        $duration = $this->getDuration();
+        // get last
+        $second = $duration >= $second ? $second : $duration;
         $fileName = $this->frameAncestor->generateImageFileName();
         $command = $this->frameAncestor->generateFrameCommand(
             $this->sourceVideoFile,

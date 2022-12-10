@@ -53,6 +53,22 @@ class FrameAncestor
             addcslashes($videoFile, "\\'")
         );
     }
+
+    public function generateDurationCommand(string $videoFile): string
+    {
+        $videoFile = trim($videoFile);
+        if (str_contains($videoFile, "\n")) {
+            throw new InvalidArgumentException(
+                'Input could not contain new line'
+            );
+        }
+        return sprintf(
+            "'%s' -v error -select_streams v:0 -count_packets -show_entries stream=duration -of csv=p=0 '%s'",
+            addcslashes($this->runner->ffprobe, "\\'"),
+            addcslashes($videoFile, "\\'")
+        );
+    }
+
     /**
      * @param string $inputVideo
      * @param int $seconds
