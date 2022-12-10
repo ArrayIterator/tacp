@@ -5,7 +5,7 @@ namespace TelkomselAggregatorTask\Libraries\Helper\Image\Adapter;
 
 use GdImage;
 use RuntimeException;
-use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Exceptions\ImageIsNotSupported;
+use TelkomselAggregatorTask\Libraries\Helper\Image\Exceptions\ImageIsNotSupported;
 
 class Gd extends AbstractImageAdapter
 {
@@ -38,13 +38,12 @@ class Gd extends AbstractImageAdapter
                 'jpeg' => [
                     'jpeg',
                     'x-icon',
-                    'ico',
-                    'jpg',
+                    'image/vnd.microsoft.icon',
                 ],
                 'xbm' => 'xbm',
                 'png' => 'png',
                 'webp' => 'webp',
-                'bmp' => 'bmp',
+                'bmp' => 'x-xbitmap',
                 'wbmp' => 'wbmp',
             ];
 
@@ -52,12 +51,12 @@ class Gd extends AbstractImageAdapter
                 if (function_exists("image$fn") && function_exists("imagecreatefrom$fn")) {
                     if (is_array($image)) {
                         foreach ($image as $img) {
-                            self::$supportedMimeTypes[$img] = $fn;
+                            self::$supportedMimeTypes["image/$img"] = $fn;
                         }
                         continue;
                     }
                 }
-                self::$supportedMimeTypes[$image] = $fn;
+                self::$supportedMimeTypes["image/$image"] = $fn;
             }
         }
 
@@ -74,10 +73,11 @@ class Gd extends AbstractImageAdapter
         }
 
         $extension = $this->getOriginalStandardExtension();
-        $fn = $this->getSupportedMimeTypeExtensionsFunctions()[$extension]??null;
+        $mimeType = $this->getOriginalMimeType();
+        $fn = $this->getSupportedMimeTypeExtensionsFunctions()[$mimeType]??null;
         if (!$fn) {
             throw new ImageIsNotSupported(
-                sprintf('Image extension %s is not supported', $extension)
+                sprintf('Image mimetype %s is not supported', $mimeType)
             );
         }
         $fn = "imagecreatefrom$fn";
@@ -237,17 +237,19 @@ class Gd extends AbstractImageAdapter
             }
         }
 
+        $functions = $this->getSupportedMimeTypeExtensionsFunctions();
         $fn = null;
         if ($forceOverrideExtension) {
             $forceOverrideExtension = strtolower(trim($forceOverrideExtension));
-            $fn = $this->getSupportedMimeTypeExtensionsFunctions()[$forceOverrideExtension]??null;
+            $key = array_search($forceOverrideExtension, $functions);
+            $fn = $key !== false ? $functions[$key] : null;
         }
+
         $extensionLower = strtolower($extension);
-        $fn = $fn??$this->getSupportedMimeTypeExtensionsFunctions()[$extensionLower]??null;
+        $fn = $fn??$functions[$extensionLower]??null;
         // check if image output type allowed
         if (!$fn) {
-            $ext = $this->getOriginalStandardExtension();
-            $fn = $this->getSupportedMimeTypeExtensionsFunctions()[$ext]??null;
+            $fn = $functions[$this->getOriginalMimeType()]??null;
         }
         if (!$fn) {
             $this->clearResource();

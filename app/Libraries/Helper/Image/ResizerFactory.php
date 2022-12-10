@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace TelkomselAggregatorTask\Libraries\Helper\Image;
 
 use Psr\Http\Message\StreamInterface;
-use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Exceptions\UnsupportedAdapter;
+use TelkomselAggregatorTask\Libraries\Helper\Image\Exceptions\UnsupportedAdapter;
 use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Gd;
 use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\ImageAdapterInterface;
 use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Imagick;

@@ -9,8 +9,8 @@ use InvalidArgumentException;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\Pure;
 use Psr\Http\Message\StreamInterface;
-use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Exceptions\ImageFileNotFoundException;
-use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Exceptions\ImageIsNotSupported;
+use TelkomselAggregatorTask\Libraries\Helper\Image\Exceptions\ImageFileNotFoundException;
+use TelkomselAggregatorTask\Libraries\Helper\Image\Exceptions\ImageIsNotSupported;
 use TelkomselAggregatorTask\Libraries\Helper\Image\ResizerFactory;
 
 abstract class AbstractImageAdapter implements ImageAdapterInterface
@@ -26,9 +26,9 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
     public readonly ResizerFactory $resizer;
 
     /**
-     * @var int
+     * @var ?int
      */
-    private int $imageType;
+    private ?int $imageType;
 
     /**
      * @var int
@@ -235,7 +235,9 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
         $this->originalHeight = $size[1];
         $mimeType = $size['mime'];
 
-        if ($size[2] === IMAGETYPE_UNKNOWN) {
+        if ($size[2] === IMAGETYPE_UNKNOWN
+            && !isset(self::MIME_TYPES[$mimeType])
+        ) {
             throw new ImageIsNotSupported(
                 sprintf('%s is not known image type.', $size)
             );
@@ -250,12 +252,15 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
         $this->originalWidth = $size[0];
         $this->originalHeight = $size[1];
         $this->originalMimeType = $mimeType;
-        $this->imageType = $size[2];
+        $this->imageType = ($size[2]??null)?:null;
         $this->width = $this->originalWidth;
         $this->height = $this->originalHeight;
-        $this->originalStandardExtension = self::IMAGE_TYPE_LIST[$this->imageType]??(
-            explode('/', $this->originalMimeType)[1]
-        );
+        if (isset(self::IMAGE_TYPE_LIST[$this->imageType])) {
+            $this->originalStandardExtension = self::IMAGE_TYPE_LIST[$this->imageType];
+        } else {
+            $ext = self::MIME_TYPES[$mimeType]??[];
+            $this->originalStandardExtension = reset($ext)?:null;
+        }
     }
 
     /**
@@ -422,6 +427,15 @@ abstract class AbstractImageAdapter implements ImageAdapterInterface
             $mimeType = $match[1];
             if (!$mimeType) {
                 return false;
+            }
+        }
+        $mimeType = "image/$mimeType";
+        if (!isset(self::MIME_TYPES["image/$mimeType"])) {
+            foreach (self::MIME_TYPES as $mime => $item) {
+                if (in_array($mimeType, $item)) {
+                    $mimeType = $mime;
+                    break;
+                }
             }
         }
         return in_array(

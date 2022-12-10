@@ -6,8 +6,8 @@ namespace TelkomselAggregatorTask\Libraries\Helper\Image\Adapter;
 use Imagick as ImagickAlias;
 use ImagickException;
 use RuntimeException;
-use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Exceptions\ImageIsNotSupported;
-use TelkomselAggregatorTask\Libraries\Helper\Image\Adapter\Exceptions\UnsupportedAdapter;
+use TelkomselAggregatorTask\Libraries\Helper\Image\Exceptions\ImageIsNotSupported;
+use TelkomselAggregatorTask\Libraries\Helper\Image\Exceptions\UnsupportedAdapter;
 
 class Imagick extends AbstractImageAdapter
 {
@@ -18,9 +18,7 @@ class Imagick extends AbstractImageAdapter
 
     public function getSupportedMimeTypeExtensions(): array
     {
-        $exts = array_values(self::IMAGE_TYPE_LIST);
-        array_push($exts, 'jpeg');
-        return $exts;
+        return array_keys(self::MIME_TYPES);
     }
 
     /**
@@ -183,6 +181,12 @@ class Imagick extends AbstractImageAdapter
         $path   = is_file($target) ? realpath($target) : $target;
         $ret_val = $this->resource->writeImage($path);
         $this->clearResource();
+        if ($ret_val && is_file($path)) {
+            $ret_val = (bool) getimagesize($path);
+            if (!$ret_val) {
+                unlink($path);
+            }
+        }
         return ! $ret_val ? null : [
             'width' => $width,
             'height' => $height,
