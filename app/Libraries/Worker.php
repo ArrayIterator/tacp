@@ -261,9 +261,13 @@ SQL;
             $id       = (int)$data['id'];
             $service  = $this->runner->services->getService(Aws::class);
             $baseName = basename($file);
+            $y = date('Y');
+            $m = date('m');
+            $d = date('d');
             $result   = $service->process([
                 'source' => $file,
-                'target' => "content/thumbnails/$id/$baseName"
+                // using : contents/thumbnails/YYYY/MM/dd/[0-9]/$basename
+                'target' => "contents/thumbnails/$y/$m/$d/$id/$baseName"
             ]);
             if (!$result instanceof Result) {
                 $this->runner->postgre->query(
