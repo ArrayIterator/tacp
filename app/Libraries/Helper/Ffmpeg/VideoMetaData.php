@@ -72,10 +72,9 @@ class VideoMetaData
         if (isset($this->fileNames[$second])) {
             return $this->fileNames[$second]?:null;
         }
-
         $duration = $this->getDuration();
         // get last
-        $second = $duration >= $second ? $second : $duration;
+        $second = min($duration, $second);
         $fileName = $this->frameAncestor->generateImageFileName();
         $command = $this->frameAncestor->generateFrameCommand(
             $this->sourceVideoFile,
@@ -83,6 +82,7 @@ class VideoMetaData
             1,
             $fileName
         );
+
         $command = "$command &> /dev/null";
         $this->frameAncestor->runner->shellString($command);
         $this->fileNames[$second] = false;
@@ -105,11 +105,13 @@ class VideoMetaData
         if (str_starts_with($this->sourceVideoFile, $this->frameAncestor->video_cache_directory)) {
             unlink($this->sourceVideoFile);
         }
+        $this->fileNames = [];
 
+        /*
         foreach ($this->getGeneratedFileNames() as $file) {
-            if (is_file($file) && is_writable($file)) {
+            if (is_string($file) && is_file($file) && is_writable($file)) {
                  unlink($file);
             }
-        }
+        }*/
     }
 }

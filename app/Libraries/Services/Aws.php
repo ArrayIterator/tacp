@@ -88,12 +88,8 @@ class Aws extends AbstractService
         $bucket = is_string($bucket) ? trim($bucket) : null;
         $uploadSize = $config['chunk_size']??null;
         $uploadSize = is_numeric($uploadSize) ? (int) $uploadSize : self::DEFAULT_PART_SIZE;
-        $uploadSize = $uploadSize < self::DEFAULT_PART_SIZE
-            ? self::DEFAULT_PART_SIZE
-            : $uploadSize;
-        $uploadSize = $uploadSize > self::DEFAULT_PART_MAX_SIZE
-            ? self::DEFAULT_PART_MAX_SIZE
-            : $uploadSize;
+        $uploadSize = max($uploadSize, self::DEFAULT_PART_SIZE);
+        $uploadSize = min($uploadSize, self::DEFAULT_PART_MAX_SIZE);
         parent::__construct($services, [
             'region' => $region,
             'secret' => $secret,

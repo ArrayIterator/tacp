@@ -143,7 +143,7 @@ class Simple
     /**
      * Clear All Events
      */
-    public function clearAll()
+    public function clearAll(): void
     {
         $this->eventsList = [];
     }

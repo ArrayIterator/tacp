@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace TelkomselAggregatorTask\Libraries\Services;
 
+use Exception;
 use InvalidArgumentException;
 use JetBrains\PhpStorm\Pure;
+use Psr\Http\Message\StreamInterface;
 use RuntimeException;
 use TelkomselAggregatorTask\Libraries\AbstractService;
 use TelkomselAggregatorTask\Libraries\Helper\Ffmpeg\FrameAncestor;
@@ -19,6 +21,7 @@ class ThumbnailGenerator extends AbstractService
     {
         $config ??= $services->runner->screen_shot_config;
         $configurations = $services->runner->screen_shot_config;
+        $configurations = array_merge($configurations, $config);
         $width = $screenShots['width']??null;
         $height = $screenShots['width']??null;
         $second = $screenShots['second']??null;
@@ -40,37 +43,36 @@ class ThumbnailGenerator extends AbstractService
         if ($configurations['width'] < 100) {
             $configurations['width'] = 100;
         }
-        parent::__construct($services, $config);
+        parent::__construct($services, $configurations);
     }
 
     /**
-     * @param array{"video":string} $arguments
+     * @param $image
+     * @param FrameAncestor|null $frame
      *
-     * @return ?array{"width":int,"height":int,"path":string,"type":string}
-     * @throws Throwable
+     * @return array|null
+     * @throws Exception
      */
-    public function process(array $arguments): ?array
+    public function resize($image, ?FrameAncestor $frame = null): ?array
     {
-        $videoInput = $arguments['video']??null;
-        if (!is_string($videoInput)) {
-            return null;
-        }
-        $frame = new FrameAncestor($this->services->runner);
-        $meta = $frame->createVideoMeta($videoInput);
-        $image = $meta->getFrameInSecond($this->config['second']);
-        if (!$image || !file_exists($image)) {
-            throw new InvalidArgumentException(
+        $image = $image instanceof StreamInterface
+            ? $image
+            : (is_string($image) ? $image : (
+               is_resource($image) ? $image : null
+            ));
+        if (!$image || is_string($image) && !file_exists($image)) {
+            throw new RuntimeException(
                 'Can not generate image'
             );
         }
-
+        $frame ??= new FrameAncestor($this->services->runner);
         $cacheImageDirectory = $frame->image_cache_directory;
         $fileName = sprintf(
             '%s/%dx%d-%s',
             $cacheImageDirectory,
             $this->config['width'],
             $this->config['height'],
-            basename($image)
+            sha1(microtime()).'.jpg'
         );
         $resizeFactory = (new ResizerFactory())->create($image);
         $result = $resizeFactory->resize(
@@ -91,11 +93,34 @@ class ThumbnailGenerator extends AbstractService
             || $this->config['height'] !== $height
         ) {
             unlink($result['path']);
-            throw new RuntimeException(
+            throw new Exception(
                 'Image resolutions result not as expected size'
             );
         }
 
         return $result;
+    }
+    /**
+     * @param array{"video":string} $arguments
+     *
+     * @return ?array{"width":int,"height":int,"path":string,"type":string}
+     * @throws Throwable
+     */
+    public function process(array $arguments): ?array
+    {
+        $videoInput = $arguments['video']??null;
+        if (!is_string($videoInput)) {
+            return null;
+        }
+        $frame = new FrameAncestor($this->services->runner);
+        $meta = $frame->createVideoMeta($videoInput);
+        $image = $meta->getFrameInSecond($this->config['second']);
+        if (!$image || !is_string($image) || !file_exists($image)) {
+            throw new RuntimeException(
+                'Can not generate image'
+            );
+        }
+
+        return $this->resize($image);
     }
 }

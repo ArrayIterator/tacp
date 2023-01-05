@@ -348,7 +348,8 @@ class Runner
     private $screen_shot_config = [
         'width' => 640,
         'height' => 640,
-        'second' => 2
+        'second' => 2,
+        'days' => 3
     ];
 
     /**
@@ -674,6 +675,8 @@ class Runner
                     $width = $screenShots['width']??null;
                     $height = $screenShots['width']??null;
                     $second = $screenShots['second']??null;
+                    $days = $screenShots['days']??null;
+
                     if (is_numeric($width)) {
                         $this->screen_shot_config['width'] = (int) $width;
                     }
@@ -683,6 +686,9 @@ class Runner
                     if (is_numeric($second)) {
                         $this->screen_shot_config['second'] = (int) $second;
                     }
+                    if (is_numeric($second)) {
+                        $this->screen_shot_config['second'] = (int) $days;
+                    }
                     if ($this->screen_shot_config['second'] < 0) {
                         $this->screen_shot_config['second'] = 1;
                     }
@@ -691,6 +697,12 @@ class Runner
                     }
                     if ($this->screen_shot_config['width'] < 100) {
                         $this->screen_shot_config['width'] = 100;
+                    }
+                    if ($this->screen_shot_config['days'] < 1) {
+                        $this->screen_shot_config['width'] = 1;
+                    }
+                    if ($this->screen_shot_config['days'] > 30) {
+                        $this->screen_shot_config['width'] = 30;
                     }
                 }
                 $this->config['screenshot'] = $this->screen_shot_config;

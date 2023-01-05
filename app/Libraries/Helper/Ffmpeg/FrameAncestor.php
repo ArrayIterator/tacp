@@ -13,7 +13,10 @@ class FrameAncestor
 {
     const GENERATE_COMMANDS = '%ffmpeg% -i %input% -movflags +faststart -ss %second% -vframes %count% %out%';
 
-    const MAX_READ_BYTES = 4096 * 1024 * 1024;
+    /**
+     * 40 MB
+     */
+    const MAX_READ_BYTES = 10485760;// 10MB
 
     public readonly string $video_cache_directory;
     public readonly string $image_cache_directory;
@@ -25,8 +28,8 @@ class FrameAncestor
         if (!is_dir($imageCacheDir)) {
             mkdir($imageCacheDir, 0755, true);
         }
-        if (!is_dir($imageCacheDir)) {
-            mkdir($imageCacheDir, 0755, true);
+        if (!is_dir($videoCacheDir)) {
+            mkdir($videoCacheDir, 0755, true);
         }
 
         $this->video_cache_directory = realpath($videoCacheDir)?:$videoCacheDir;
@@ -192,6 +195,9 @@ class FrameAncestor
             }
             restore_error_handler();
             $tempFileName = $this->generateVideoFileName($inputVideo);
+            if (!file_exists(dirname($tempFileName))) {
+                mkdir(dirname($tempFileName), 0755, true);
+            }
             try {
                 set_error_handler(function ($errno, $errstr) use ($tempFileName) {
                     throw new RuntimeException(
@@ -209,14 +215,49 @@ class FrameAncestor
                 throw $e;
             }
             $size = 0;
+            $meta = stream_get_meta_data($socketURL);
+            $length = self::MAX_READ_BYTES;
+            if (is_array($meta['wrapper_data']??null)) {
+                $wrapper =  implode("\n", $meta['wrapper_data']);
+                preg_match('~Content-Length\s*:\s*([0-9]+)(?:\s|$)~', $wrapper, $match);
+                $length = (int) $match[1];
+                if ($length > self::MAX_READ_BYTES) {
+                    $length = self::MAX_READ_BYTES;
+                }
+            }
+            $count = 0;
+            $this->runner->events->dispatch(
+                'ancestor:download',
+                'Downloading Video',
+                $size,
+                $count,
+                $length,
+                $meta
+            );
             while (!feof($socketURL) && $size < self::MAX_READ_BYTES) {
                 $content = fread($socketURL, 4096);
+                $this->runner->events->dispatch(
+                    'ancestor:download',
+                    'Downloading Video',
+                    $size,
+                    $count,
+                    $length,
+                    $meta
+                );
                 $written = fwrite($videoSocket, $content);
                 if ($written === false) {
                     break;
                 }
                 $size += $written;
             }
+            $this->runner->events->dispatch(
+                'ancestor:download',
+                'Downloading Video',
+                $size,
+                $count,
+                $size,
+                $meta
+            );
             fclose($socketURL);
             fclose($videoSocket);
             $inputVideo = realpath($tempFileName)?:$tempFileName;

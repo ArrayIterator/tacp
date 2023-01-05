@@ -1,4 +1,9 @@
 ## ------------------------------------------------
+# CLEAN PROCEDURE
+# Minimum 1 Hour & Max 12 Hours
+## ------------------------------------------------
+clean: 6
+## ------------------------------------------------
 # PostgreSQL Database Details
 ## ------------------------------------------------
 database:
@@ -48,3 +53,5 @@ screenshot:
   width: 640
   # frame in second to get
   second: 2
+  # days to get maximum 30 minimum 1
+  days: 3
