@@ -109,6 +109,14 @@ SQL;
         );
 
         $url = trim($data['content_url']);
+        // if not url then skip
+        if (!preg_match('~^https?://~', $url)) {
+            $this->runner->postgre->query(
+                "UPDATE contents SET task_status='Skipped' WHERE id='$id'"
+            );
+            return;
+        }
+
         $retry_status = (int) ($data['retry_status']??0);
         $retry_status = $retry_status < 1 ? 0 : $retry_status + 1;
         $retry = $retry_status;
