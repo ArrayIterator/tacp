@@ -3,6 +3,9 @@ use TelkomselAggregatorTask\Runner;
 
 require __DIR__ . '/app/Runner.php';
 
+// make script run forever
+set_time_limit(0);
+
 $instance = Runner::instance();
 // maximum process as daemon
 $maxProcess = 5;
