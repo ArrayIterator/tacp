@@ -252,8 +252,21 @@ SQL;
             } else {
                 $this->runner->postgre->query("UPDATE contents SET task_status='Failed' WHERE id='$id'");
             }
-            if (isset($fileName) && file_exists($fileName)) {
+            // delete temp file
+            if (isset($fileName)
+                && file_exists($fileName)
+                && is_file($fileName)
+                && is_writable($fileName)
+            ) {
                 unlink($fileName);
+            }
+            // delete temp file
+            if (!empty($result['path'])
+                && is_string($result['path'])
+                && file_exists($result['path'])
+                && is_writable($result['path'])
+            ) {
+                unlink($result['path']);
             }
         }
     }
