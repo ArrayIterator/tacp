@@ -319,7 +319,7 @@ SQL;
             $lastClean = $lastClean['result']??null;
             $lastClean = $lastClean ?: 0;
             $lastClean = is_numeric($lastClean) ? (int) $lastClean : $lastClean;
-            $do = (!is_int($lastClean) || $lastClean && (
+            $do = (!is_int($lastClean) || $lastClean == 0 || $lastClean && (
                 ($lastClean + $six_hour) < $timestamp)
                 || ($lastClean-3600) > $timestamp
             );
