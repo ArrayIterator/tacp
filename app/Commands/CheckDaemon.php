@@ -84,9 +84,14 @@ class CheckDaemon extends Command
             }
             // checking table
             $this->checkTable($output);
-            $output->writeln(
-                '<fg=red>File ".stop" already exist! Application could not started! Please delete first.</>'
-            );
+
+            if (is_string($this->console->runner->stop_file)
+                && file_exists($this->console->runner->stop_file)
+            ) {
+                $output->writeln(
+                    '<fg=red>File ".stop" already exist! Application could not started! Please delete first.</>'
+                );
+            }
 
             return self::SUCCESS;
         }
@@ -134,10 +139,14 @@ class CheckDaemon extends Command
                 "\t$php $file daemon:start"
             );
         } else {
-            $output->writeln('');
-            $output->writeln(
-                "\tFile \".stop\" already exist! Application could not started! Please delete first."
-            );
+            if (is_string($this->console->runner->stop_file)
+                && file_exists($this->console->runner->stop_file)
+            ) {
+                $output->writeln('');
+                $output->writeln(
+                    "\tFile \".stop\" already exist! Application could not started! Please delete first."
+                );
+            }
         }
         return self::SUCCESS;
     }

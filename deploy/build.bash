@@ -32,7 +32,8 @@ if [[ ! -f "${PWD}/box.json" ]]; then
     echo -e "\033[0;31mbox.json does not exists\033[0m"
     exit 255
 fi
-FILE=$("${PHP_BIN}" -r "\$r = json_decode(file_get_contents('${PWD}/box.json'), true)['output']??'';echo \$r ? realpath(dirname(\$r)).'/'.basename(\$r) : '';")
+FILE=$("${PHP_BIN}" -r "\$r = json_decode(file_get_contents('${PWD}/box.json'), true)['output']??''; echo \$r ? (realpath(dirname(\$r))?:'${PWD}/'.dirname(\$r)).'/'.basename(\$r) : '';")
+
 if [[ "${FILE}" = '' ]];then
     echo -e "\033[0;31mCan not detect build file\033[0m"
     exit 255
@@ -73,7 +74,7 @@ if [[ "${SHASUM}" != "${COMPOSER_SHA256SUM}" ]]; then
     exit
 fi
 
-cd "${PWD}"
+cd "${PWD}" || (echo -e "\033[0;31mCan not navigated to ${PWD}\033[0m" & exit $?)
 
 echo -e "\033[0;34mInstalling dependencies with composer\033[0m"
 "${PHP_BIN}" "${COMPOSER_PHAR}" install &> /dev/null || exit $?
@@ -82,11 +83,13 @@ if [[ ! -f "${PWD}/vendor/bin/box" ]]; then
     exit
 fi
 
-"${PHP_BIN}" "${PWD}/vendor/bin/box" compile &> /dev/null & echo -e "\033[0;34mBuilding Archive\033[0m" || (echo -e "\033[0;31mFAiled to build binary\033[0m" & exit $?)
+echo -e "\033[0;34mBuilding Archive\033[0m"
+"${PHP_BIN}" "${PWD}/vendor/bin/box" compile &> /dev/null 2>&1 || (echo -e "\033[0;31mFAiled to build binary\033[0m" & exit $?)
 if [[ ! -f "${FILE}" ]]; then
     echo -e "\033[0;31mI don't know build files saved!\033[0m"
     exit
 fi
+
+chmod +x "${FILE}"
 echo -e "\033[0;34mBuild file on:\033[0m"
 echo -e "  \033[0;32m${FILE}\033[0m"
-

@@ -28,6 +28,9 @@ class Worker
 
     public function start()
     {
+        $this->runner->console->writeln(
+            '<fg=blue>[i] Starting Worker</>'
+        );
         /*
 -- index
 --  "contentUrl", "coverImage", "updatedAt", task_status, retry_status, generate_thumbnail_status
@@ -319,7 +322,7 @@ SQL;
             $lastClean = $lastClean['result']??null;
             $lastClean = $lastClean ?: 0;
             $lastClean = is_numeric($lastClean) ? (int) $lastClean : $lastClean;
-            $do = (!is_int($lastClean) || $lastClean == 0 || $lastClean && (
+            $do = (!is_int($lastClean) || $lastClean < $six_hour || $lastClean > 0 && (
                 ($lastClean + $six_hour) < $timestamp)
                 || ($lastClean-3600) > $timestamp
             );
