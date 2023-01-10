@@ -258,7 +258,10 @@ SQL;
                 && is_file($fileName)
                 && is_writable($fileName)
             ) {
-                unlink($fileName);
+                try {
+                    unlink($fileName);
+                } catch (Throwable) {
+                }
             }
             // delete temp file
             if (!empty($result['path'])
@@ -266,7 +269,10 @@ SQL;
                 && file_exists($result['path'])
                 && is_writable($result['path'])
             ) {
-                unlink($result['path']);
+                try {
+                    unlink($result['path']);
+                } catch (Throwable) {
+                }
             }
         }
     }
