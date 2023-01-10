@@ -23,7 +23,7 @@
         "symfony/console": "^6.2",
         "symfony/yaml": "^6.2",
         "aws/aws-sdk-php": "^3.252",
-        "google/apiclient": "^2.12",
+        "google/apiclient": "^2.12"
     },
     "extra": {
         "google/apiclient-services": [
