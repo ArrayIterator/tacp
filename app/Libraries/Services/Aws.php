@@ -282,6 +282,7 @@ class Aws extends AbstractService
             'part_size' => $this->config['chunk_size'],
             'bucket' => $bucket,
             'key' => $target,
+            'acl' => 'public-read',
             'before_upload' => function (CommandInterface $command, $key) {
                 $this->services->runner->events->dispatch(
                     'on:before:awsUploadProcess',

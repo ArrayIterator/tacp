@@ -283,6 +283,7 @@ SQL;
                 ? $result->get('ObjectURL')
                 : ($result->hasKey('Location') ? $result->hasKey('Location') : null);
             if ($location) {
+                $location = str_replace(rawurlencode('/'), '/', $location);
                 $location = $this->runner->postgre->quote($location);
                 $this->runner->postgre->query(
                     "UPDATE contents 
